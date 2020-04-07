@@ -5,50 +5,84 @@ export default class App extends Component {
   state = {
     countries: [],
     total: 0,
+    sortByActive: false,
   };
 
   async componentDidMount() {
     const result = await axios.get(
-      "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"
+      "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/web-data/data/cases_country.csv"
     );
 
     const data = result.data.split("\n");
     const header = data[0].split(",");
     const row = data[1].split(",");
     console.log(header[0]);
+
     console.log(row[1]);
     console.log(row[row.length - 1]);
     console.log("**********************************");
 
-    const countries = [];
+    let countries = [];
     let allCountryTotal = 0;
 
     for (let i = 1; i < data.length; i++) {
-      const row = data[i].split(",");
-      const countryName = row[1];
-      const total = Number(row[row.length - 1]);
+      // prettier-ignore
+      const row = data[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+      const countryName = row[0];
+      const total = Number(row[4]);
       const foundCountry = countries.filter((x) => x.name === countryName);
 
-      if (foundCountry.length === 0) {
-        countries.push({ name: countryName, total: total });
+      if (countryName != null && countryName != "") {
+        countries.push({
+          name: countryName.replace(/"/g, ""),
+          total: total,
+        });
         allCountryTotal += total;
-      } else {
-        foundCountry[0].total = foundCountry[0].total + total;
       }
     }
 
-    // console.log(countries.length);
-    // console.table(countries);
+    let isDescendng = true;
+
+    // countries.sort(this.sortByTotal);
+
+    // countries.sort((countryA, countryB) => {
+    //   if (countryA.name > countryB.name) return 1;
+    //   else if (countryA.name < countryB.name) return -1;
+    //   else return 0;
+    // });
 
     this.setState({ countries, total: allCountryTotal });
-
-    // for (let item in country) {
-    // }
   }
 
   numberWithCommas(x) {
     return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   }
+
+  sortByName = (countryA, countryB) => {
+    if (countryA.name > countryB.name) return 1;
+    else if (countryA.name < countryB.name) return -1;
+    else return 0;
+  };
+
+  sortByTotal = (countryA, countryB) => {
+    if (countryA.total < countryB.total) return 1;
+    else if (countryA.total > countryB.total) return -1;
+    else return 0;
+  };
+
+  handleSortByTotal = (event) => {
+    event.preventDefault();
+    const countries = [...this.state.countries];
+    countries.sort(this.sortByTotal);
+    this.setState({ countries });
+  };
+
+  handleSortByName = (event) => {
+    event.preventDefault();
+    const countries = [...this.state.countries];
+    countries.sort(this.sortByName);
+    this.setState({ countries });
+  };
 
   render() {
     const { countries, total } = this.state;
@@ -59,12 +93,21 @@ export default class App extends Component {
           All country total: {this.numberWithCommas(total)}
         </h1>
         <hr></hr>
+
         {countries.length >= 1 ? (
           <table class="table table-striped">
             <thead>
               <tr>
-                <th>Country</th>
-                <th>Total</th>
+                <th>
+                  <a href="/" onClick={this.handleSortByName}>
+                    Country
+                  </a>
+                </th>
+                <th>
+                  <a href="/" onClick={this.handleSortByTotal}>
+                    Total
+                  </a>{" "}
+                </th>
               </tr>
             </thead>
             <tbody>
